@@ -1,0 +1,5 @@
+Edit X:tg/\+Errors: 1,$d
+X:tg/.*\.zig: w
+
+zig build test
+zig build run

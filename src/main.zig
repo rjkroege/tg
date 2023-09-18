@@ -1,5 +1,7 @@
 const std = @import("std");
 
+
+
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
@@ -12,6 +14,11 @@ pub fn main() !void {
     const stdout = bw.writer();
 
     try stdout.print("Run `zig build test` to run the tests.\n", .{});
+
+	var ai = std.process.args();
+	while (ai.next()) |s| {
+		try stdout.print("{s}\n", .{ s });
+	}
 
     try bw.flush(); // don't forget to flush!
 }

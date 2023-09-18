@@ -2,4 +2,8 @@ Edit X:tg/\+Errors: 1,$d
 X:tg/.*\.zig: w
 
 zig build test
-zig build run
+
+zig build run -- hello rob
+
+
+# Add zigfmt support

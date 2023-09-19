@@ -24,6 +24,22 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Can I print here? Yes! This printed something.
+    const stdout = std.io.getStdOut().writer();
+    stdout.print("Show that I can print from a build.zig. Spiffy!\n", .{}) catch unreachable;
+
+    // This (supposedly) makes the package available? After deleting all the
+    // caches, it would seem to have worked.
+    const clapdepdency = b.dependency("clap", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const clap_module = clapdepdency.module("clap");
+    exe.addModule("clap", clap_module);
+    // exe.linkLibrary(argtic.artifact("zig-argtic"));
+
+    // maybe I need to add something here?
+
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).

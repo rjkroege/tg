@@ -7,3 +7,5 @@ zig build run -- hello rob
 
 
 # Add zigfmt support
+zig fmt
+Edit X/\.(zig)$/ e

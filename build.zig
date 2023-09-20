@@ -24,6 +24,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+// How do I add another target?
+
     // Can I print here? Yes! This printed something.
     const stdout = std.io.getStdOut().writer();
     stdout.print("Show that I can print from a build.zig. Spiffy!\n", .{}) catch unreachable;

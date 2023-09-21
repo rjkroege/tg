@@ -8,10 +8,12 @@ const io = std.io;
 const expect = std.testing.expect;
 
 // Local imports. Every file is a module. The magic test stanza below
-// will force the tests to be compiled?
+// will force the tests to be compiled.
 const files = @import("readfiles.zig");
 
 pub fn main() !void {
+    // Use clap to process command line arguments. Some of this is moslty
+    // copied from the clap example code.
 
     // First we specify what parameters our program can take.
     // We can use `parseParamsComptime` to parse a string into an array of `Param(Help)`
@@ -26,8 +28,6 @@ pub fn main() !void {
         \\
     );
 
-    //
-
     // Initialize our diagnostics, which can be used for reporting useful errors.
     // This is optional. You can also pass `.{}` to `clap.parse` if you don't
     // care about the extra information `Diagnostics` provides.
@@ -41,38 +41,24 @@ pub fn main() !void {
     };
     defer res.deinit();
 
+    // This worked as I thought that it would. It displays the type of the
+    // tag setting. This is very cool Zig feature. Preserved here to help
+    // remind me of this feature.
+    // debug.print("{any}\n", .{@TypeOf(res.args.tag)});
+    // debug.print("{any}\n", .{@TypeOf(res.positionals)});
+
     if (res.args.help != 0)
         debug.print("--help\n", .{});
     for (res.args.tag) |s|
         debug.print("--tag = {s}\n", .{s});
-    // TODO(rjk): I need to restructure this code to let me set / remove tags
-    // on the provided files.
+    // TODO(rjk): Extend this to display the values for each key.
     for (res.positionals) |pos| {
-        // debug.print("{s}\n", .{pos});
         try files.printMetadatakeys(pos);
     }
-
-    // This worked as I thought that it would. It displays the type of the
-    // tag setting. This is very cool.
-    // TODO(rjk): I should put this in a test?
-    debug.print("{any}\n", .{@TypeOf(res.args.tag)});
-    debug.print("{any}\n", .{@TypeOf(res.positionals)});
-
-    // I think that I can still go write this the way that I was thinking but
-    // there's stuff to figure out. headers are here
-    // /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Headers
-
-    // Demo of printing something with printf.
-    files.printSomethingWithC();
-}
-
-// This test is getting executed.
-test "failing" {
-    try expect(101 == 101);
 }
 
 test {
-    // Magic stanza to force all the tests to run?
+    // Magic stanza to force all the tests to run.
     // But also includes clap and that fails. (C.f. Nested Container Tests)
     // @import("std").testing.refAllDecls(@This());
 

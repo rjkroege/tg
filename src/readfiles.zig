@@ -4,7 +4,7 @@ const debug = std.debug;
 const expect = std.testing.expect;
 const os = std.os;
 
-// This is how to use a C program.
+// This is how to use a C API.
 const c = @cImport({
     // See https://github.com/ziglang/zig/issues/515
     @cDefine("_NO_CRT_STDIO_INLINE", "1");
@@ -97,7 +97,7 @@ fn splitnamebuf(pheap: std.mem.Allocator, buffy: []const u8) Allocator.Error![][
     // I need this in because try can exit in an allocation error.
     defer list.deinit();
 
-    debug.print("splitnamebuf at the top\n", .{});
+    // debug.print("splitnamebuf at the top\n", .{});
 
     var si = std.mem.splitAny(u8, buffy, &[_]u8{0});
     while (si.next()) |s| {
@@ -105,21 +105,21 @@ fn splitnamebuf(pheap: std.mem.Allocator, buffy: []const u8) Allocator.Error![][
         if (s.len > 0) {
             var p = try pheap.alloc(u8, s.len);
             @memcpy(p, s);
-            debug.print("appending {s}\n", .{s});
+            // debug.print("appending {s}\n", .{s});
             try list.append(s);
         }
     }
-    debug.print("splitnamebuf at the bottom\n", .{});
+    // debug.print("splitnamebuf at the bottom\n", .{});
     return list.toOwnedSlice();
 }
 
 test "splitting works?" {
-    // Note what happened here. I have allocated stuff above. I missed dealloc-ing everything.
+    // Note what happened here. I made things complicated with two
+    // allocators. The pheap also needs to be collected. I have been spoiled
+    // by the use of GC.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const pheap = arena.allocator();
-
-    debug.print("splitting test starts\n\n", .{});
 
     const t0 = try splitnamebuf(pheap, "");
     debug.print("t0 {any} : {any} len {d}\n", .{ t0, @TypeOf(t0), t0.len });
@@ -142,18 +142,14 @@ test "splitting works?" {
 }
 
 // Called for each file.
-// TODO(make an arena, print the names of stuff)
-// TODO(rjk): add an arena... allocator: std.mem.Allocator
 pub fn printMetadatakeys(filename: []const u8) !void {
-    debug.print("printStuffAboutAFile {s}\n", .{filename});
-
     // Initialize the arena.
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     // Free the memory on returning from this function.
     defer arena.deinit();
 
     const heap = arena.allocator();
-    debug.print("{any}\n", .{@TypeOf(heap)});
+    // debug.print("{any}\n", .{@TypeOf(heap)});
 
     if (listxattr(heap, filename)) |keys| {
         debug.print("{s}:", .{filename});

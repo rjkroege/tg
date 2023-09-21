@@ -24,7 +24,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-// How do I add another target?
+    // Additional source files are each a separate "module" and need to be
+    // imported. And that's how more source files get to become part of the
+    // project.
 
     // Can I print here? Yes! This printed something.
     const stdout = std.io.getStdOut().writer();
@@ -39,8 +41,6 @@ pub fn build(b: *std.Build) void {
     const clap_module = clapdepdency.module("clap");
     exe.addModule("clap", clap_module);
     // exe.linkLibrary(argtic.artifact("zig-argtic"));
-
-    // maybe I need to add something here?
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

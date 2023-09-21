@@ -6,19 +6,18 @@
     // the version of your project
     .version = "0.0.1",
 
-    // the actual packages you need as dependencies of your project 
+    // the actual packages you need as dependencies of your project
     .dependencies = .{
         // the name of the package
         .clap = .{
             // the url to the release of the module
-// See https://zig.news/edyu/zig-package-manager-wtf-is-zon-558e on how
-// this works. Also note, these need a .tar.gz. And
-// https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
-// explained how to get this downloaded.
-           .url = "https://github.com/Hejsil/zig-clap/archive/refs/heads/master.tar.gz",
+            // See https://zig.news/edyu/zig-package-manager-wtf-is-zon-558e on how
+            // this works. Also note, these need a .tar.gz. And
+            // https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+            // explained how to get this downloaded.
+            .url = "https://github.com/Hejsil/zig-clap/archive/refs/heads/master.tar.gz",
             // the hash of the module, this is not the checksum of the tarball
             .hash = "12206795542ab1c19251aac74db20dda4c2abf3289597dd02d52b1d70175064fb298",
         },
     },
 }
-

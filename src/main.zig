@@ -50,35 +50,37 @@ pub fn main() !void {
         debug.print("--help\n", .{});
     for (res.args.tag) |s|
         debug.print("--tag = {s}\n", .{s});
+    // TODO(rjk): I need to restructure this code to let me set / remove tags
+    // on the provided files.
     for (res.positionals) |pos| {
-  	      // debug.print("{s}\n", .{pos});
-		try files.printStuffAboutAFile(pos);
-	}
+        // debug.print("{s}\n", .{pos});
+        try files.printStuffAboutAFile(pos);
+    }
 
-// This worked as I thought that it would. It displays the type of the
-// tag setting. This is very cool.
+    // This worked as I thought that it would. It displays the type of the
+    // tag setting. This is very cool.
+    // TODO(rjk): I should put this in a test?
     debug.print("{any}\n", .{@TypeOf(res.args.tag)});
     debug.print("{any}\n", .{@TypeOf(res.positionals)});
 
-// I think that I can still go write this the way that I was thinking but
-// there's stuff to figure out. headers are here
-// /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Headers
+    // I think that I can still go write this the way that I was thinking but
+    // there's stuff to figure out. headers are here
+    // /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Headers
 
-	// Demo of printing something with printf.
-	files.printSomethingWithC();
-
+    // Demo of printing something with printf.
+    files.printSomethingWithC();
 }
 
 // This test is getting executed.
 test "failing" {
-		try expect(101 == 101);
+    try expect(101 == 101);
 }
 
 test {
-// Magic stanza to force all the tests to run?
-// But also includes clap and that fails. (C.f. Nested Container Tests)
-    	// @import("std").testing.refAllDecls(@This());
+    // Magic stanza to force all the tests to run?
+    // But also includes clap and that fails. (C.f. Nested Container Tests)
+    // @import("std").testing.refAllDecls(@This());
 
-	// Just refer to the container (in this case source file)
-	_ = @import("readfiles.zig");
+    // Just refer to the container (in this case source file)
+    _ = @import("readfiles.zig");
 }

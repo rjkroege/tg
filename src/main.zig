@@ -12,13 +12,6 @@ const expect = std.testing.expect;
 const files = @import("readfiles.zig");
 
 pub fn main() !void {
-    // initialize the allocator
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    // free the memory on exit
-    defer arena.deinit();
-    // initialize the allocator
-    const allocator = arena.allocator();
-    debug.print("{any}\n", .{@TypeOf(allocator)});
 
     // First we specify what parameters our program can take.
     // We can use `parseParamsComptime` to parse a string into an array of `Param(Help)`
@@ -32,6 +25,8 @@ pub fn main() !void {
         \\<str>...
         \\
     );
+
+    //
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
     // This is optional. You can also pass `.{}` to `clap.parse` if you don't
@@ -54,7 +49,7 @@ pub fn main() !void {
     // on the provided files.
     for (res.positionals) |pos| {
         // debug.print("{s}\n", .{pos});
-        try files.printStuffAboutAFile(pos);
+        try files.printMetadatakeys(pos);
     }
 
     // This worked as I thought that it would. It displays the type of the

@@ -25,7 +25,7 @@ test "fooey" {
 const errno = std.os.errno;
 
 // Errors
-pub const Error = error{
+pub const ReadfilesError = error{
     SystemResources,
     InvalidFileDescriptor,
     NameTooLong,
@@ -35,10 +35,13 @@ pub const Error = error{
     FileSystem,
     FileNotFound,
     NotDir,
+    OutOfMemory,
+    SymLinkLoop,
+    UnexpectedError,
 } || std.os.UnexpectedError;
 
 // Attempt at wrapping listxattr in a nice way.
-pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) Error![][]const u8 {
+pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError![][]const u8 {
     // TODO(rjk): can arena be const?
     var arena = std.heap.ArenaAllocator.init(pheap);
     // Convention: I have two kinds of memory: the local heap and the
@@ -55,30 +58,33 @@ pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) Error![][]const
     // to the kernel.
     const posixpath = try os.toPosixPath(filename);
     var sz: u32 = 200;
-    var buffy = lheap.alloc(u8, sz);
+    var buffy = try lheap.alloc(u8, sz);
 
     while (true) {
         // TODO(rjk): Consider making the options configurable?
-        const rc = c.listxattr(&posixpath, &buffy, buffy.len, 0);
+        const rc = c.listxattr(&posixpath, buffy.ptr, buffy.len, 0);
         switch (errno(rc)) {
-            .SUCCESS => return splitnamebuf(pheap, buffy[0..rc]),
-            .ENOTSUP => unreachable,
-            .ERANGE => {
+            .SUCCESS => {
+                const ul: usize = @intCast(rc);
+                return splitnamebuf(pheap, buffy[0..ul]);
+            },
+            .OPNOTSUPP => unreachable,
+            .RANGE => {
                 // buffy wasn't big enough
                 sz *= 2;
-                buffy = lheap.alloc(u8, sz);
+                buffy = try lheap.alloc(u8, sz);
                 continue;
             },
-            // TODO(rjk): Should it be error or Error?
-            .EPERM => return error.PermissionDenied,
-            .ENOTDIR => return Error.NotDir,
-            .ENAMETOOLONG => return Error.NameTooLong,
-            .EACCES => return Error.PermissionDenied,
-            .ELOOP => return Error.SymLinkLoop,
-            .EFAULT => return Error.SystemResources,
-            .EIO => return Error.InputOutput,
-            .EINVAL => unreachable,
-            else => return Error.UnexpectedError,
+            // TODO(rjk): It can be error. Or ReadfilesError as it's a member of that.
+            .PERM => return error.PermissionDenied,
+            .NOTDIR => return error.NotDir,
+            .NAMETOOLONG => return error.NameTooLong,
+            .ACCES => return error.PermissionDenied,
+            .LOOP => return error.SymLinkLoop,
+            .FAULT => return error.SystemResources,
+            .IO => return error.InputOutput,
+            .INVAL => unreachable,
+            else => return error.UnexpectedError,
         }
     }
 }
@@ -138,21 +144,24 @@ test "splitting works?" {
 // Called for each file.
 // TODO(make an arena, print the names of stuff)
 // TODO(rjk): add an arena... allocator: std.mem.Allocator
-pub fn printStuffAboutAFile(filename: []const u8) !void {
+pub fn printMetadatakeys(filename: []const u8) !void {
     debug.print("printStuffAboutAFile {s}\n", .{filename});
 
-    // TODO(rjk): Observe that this doesn't need to be a sentinel.
-    var namebuf: [8000:0]u8 = undefined;
-    const posixpath = try os.toPosixPath(filename);
-    //const p : [*c]const u8 = @ptrCast(posixpath);
-    const status = c.listxattr(&posixpath, &namebuf, namebuf.len, c.XATTR_NOFOLLOW);
+    // Initialize the arena.
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    // Free the memory on returning from this function.
+    defer arena.deinit();
 
-    debug.print("{d}\n", .{status});
-    if (status < 0) {
-        return Error.UnexpectedError;
+    const heap = arena.allocator();
+    debug.print("{any}\n", .{@TypeOf(heap)});
+
+    if (listxattr(heap, filename)) |keys| {
+        debug.print("{s}:", .{filename});
+        for (keys) |k| {
+            debug.print(" {s}", .{k});
+        }
+        debug.print("\n", .{});
+    } else |err| {
+        debug.print("{s}: can't read metadata: {any}\n", .{ filename, err });
     }
-    debug.print("error {s}\n", .{namebuf});
-
-    // chop up...
-    // iterate over a sentinel'ed string.
 }

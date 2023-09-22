@@ -38,6 +38,8 @@ pub const ReadfilesError = error{
     OutOfMemory,
     SymLinkLoop,
     UnexpectedError,
+    IsDir,
+    NoAttr,
 } || std.os.UnexpectedError;
 
 // Attempt at wrapping listxattr in a nice way.
@@ -77,9 +79,42 @@ pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError!
     }
 }
 
-//pub fn getxattr(pheap: std.mem.Allocator, filename: []const u8, key: []const u8) ReadfilesError![]const u8 {
-// need to dump the contents of a
-//}
+pub fn getxattr(pheap: std.mem.Allocator, filename: []const u8, key: [:0]const u8) ReadfilesError![]const u8 {
+    const posixpath = try os.toPosixPath(filename);
+    var buffy = std.ArrayList(u8).init(pheap);
+    defer buffy.deinit();
+    try buffy.resize(100);
+
+    while (true) {
+        // TODO(rjk): Consider making the options configurable?
+        // TODO(rjk): Do something sensible with position?
+        const rc = c.getxattr(&posixpath, key.ptr, buffy.items.ptr, buffy.items.len, 0, 0);
+        switch (errno(rc)) {
+            .SUCCESS => {
+                const ul: usize = @intCast(rc);
+                try buffy.resize(ul);
+                return buffy.toOwnedSlice();
+            },
+            .NOATTR => return error.NoAttr,
+            .OPNOTSUPP => unreachable,
+            .RANGE => {
+                try buffy.resize(buffy.items.len * 2);
+                continue;
+            },
+            // TODO(rjk): It can be error. Or ReadfilesError as it's a member of that.
+            .PERM => return error.PermissionDenied,
+            .ISDIR => return error.IsDir,
+            .NOTDIR => return error.NotDir,
+            .NAMETOOLONG => return error.NameTooLong,
+            .ACCES => return error.PermissionDenied,
+            .LOOP => return error.SymLinkLoop,
+            .FAULT => return error.SystemResources,
+            .IO => return error.InputOutput,
+            .INVAL => unreachable,
+            else => return error.UnexpectedError,
+        }
+    }
+}
 
 const Allocator = std.mem.Allocator;
 
@@ -149,6 +184,10 @@ pub fn printMetadatakeys(filename: []const u8) !void {
             debug.print(" {s}", .{k});
         }
         debug.print("\n", .{});
+        for (keys) |k| {
+            const v = try getxattr(heap, filename, k);
+            debug.print("    {s}:{s}\n", .{ k, v });
+        }
     } else |err| {
         debug.print("{s}: can't read metadata: {any}\n", .{ filename, err });
     }

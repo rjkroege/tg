@@ -42,37 +42,25 @@ pub const ReadfilesError = error{
 
 // Attempt at wrapping listxattr in a nice way.
 pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError![][]const u8 {
-    // TODO(rjk): can arena be const?
-    var arena = std.heap.ArenaAllocator.init(pheap);
-    // Convention: I have two kinds of memory: the local heap and the
-    // provided (parent) heap. I will (try!) to use the lheap for in-function
-    // temporary space and objects escaping need to be allocated from the
-    // pheap.
-
-    // The arena is local (i.e. in-function) storage. The defer command here
-    // will wipe all of the temp allocations out at the end of the frame.
-    defer arena.deinit();
-    const lheap = arena.allocator();
-
     // toPosixPath makes a Zig "string" into an array of chars for submission
     // to the kernel.
     const posixpath = try os.toPosixPath(filename);
-    var sz: u32 = 200;
-    var buffy = try lheap.alloc(u8, sz);
+    var buffy = std.ArrayList(u8).init(pheap);
+    defer buffy.deinit();
+    try buffy.resize(100);
 
     while (true) {
         // TODO(rjk): Consider making the options configurable?
-        const rc = c.listxattr(&posixpath, buffy.ptr, buffy.len, 0);
+        const rc = c.listxattr(&posixpath, buffy.items.ptr, buffy.items.len, 0);
         switch (errno(rc)) {
             .SUCCESS => {
                 const ul: usize = @intCast(rc);
-                return splitnamebuf(pheap, buffy[0..ul]);
+                try buffy.resize(ul);
+                return splitnamebuf(pheap, try buffy.toOwnedSlice());
             },
             .OPNOTSUPP => unreachable,
             .RANGE => {
-                // buffy wasn't big enough
-                sz *= 2;
-                buffy = try lheap.alloc(u8, sz);
+                try buffy.resize(buffy.items.len * 2);
                 continue;
             },
             // TODO(rjk): It can be error. Or ReadfilesError as it's a member of that.
@@ -88,6 +76,10 @@ pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError!
         }
     }
 }
+
+//pub fn getxattr(pheap: std.mem.Allocator, filename: []const u8, key: []const u8) ReadfilesError![]const u8 {
+// need to dump the contents of a
+//}
 
 const Allocator = std.mem.Allocator;
 

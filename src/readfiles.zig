@@ -41,7 +41,7 @@ pub const ReadfilesError = error{
 } || std.os.UnexpectedError;
 
 // Attempt at wrapping listxattr in a nice way.
-pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError![][]const u8 {
+pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError![][:0]const u8 {
     // toPosixPath makes a Zig "string" into an array of chars for submission
     // to the kernel.
     const posixpath = try os.toPosixPath(filename);
@@ -84,8 +84,8 @@ pub fn listxattr(pheap: std.mem.Allocator, filename: []const u8) ReadfilesError!
 const Allocator = std.mem.Allocator;
 
 // Splits apart the namebuf by returning a vector of slices.
-fn splitnamebuf(pheap: std.mem.Allocator, buffy: []const u8) Allocator.Error![][]const u8 {
-    var list = std.ArrayList([]const u8).init(pheap);
+fn splitnamebuf(pheap: std.mem.Allocator, buffy: []const u8) Allocator.Error![][:0]const u8 {
+    var list = std.ArrayList([:0]const u8).init(pheap);
     // I need this in because try can exit in an allocation error.
     defer list.deinit();
 
@@ -95,10 +95,10 @@ fn splitnamebuf(pheap: std.mem.Allocator, buffy: []const u8) Allocator.Error![][
     while (si.next()) |s| {
         // Intuitively: I am leaking because I allocated the buffer from the lheap.
         if (s.len > 0) {
-            var p = try pheap.alloc(u8, s.len);
+            var p = try pheap.allocSentinel(u8, s.len, 0);
             @memcpy(p, s);
             // debug.print("appending {s}\n", .{s});
-            try list.append(s);
+            try list.append(p);
         }
     }
     // debug.print("splitnamebuf at the bottom\n", .{});
